@@ -1,0 +1,85 @@
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET MACHINE_ID = REPLACE(REPLACE(UPPER(TRIM(REPLACE(MACHINE_ID, char(9), ''))), ' -', '-'), '- ', '-');
+
+DELETE FROM Raw_Manufacturing_Downtime_Dataset
+WHERE 
+    machine_id IS NULL OR LOWER(machine_id) IN ('', 'na', 'n/a', 'null', 'missing', '-')
+    OR hydraulic_pressu IN ('??', '')
+    OR coolant_pressure IS NULL OR LOWER(coolant_pressure) IN ('missing', 'n/a', 'na', 'null', '-')
+    OR air_system_press IS NULL OR LOWER(air_system_press) IN ('missing', 'n/a', 'na', 'null', '-', 'error')
+    OR coolant_temperat IN ('', 'N/A', '??')
+    OR spindle_bearing_ = '??'
+    OR tool_vibration_m = 'error'
+    OR spindle_speed_rp IS NULL OR LOWER(spindle_speed_rp) IN ('missing', 'n/a', 'na', 'null', '-')
+    OR voltage_volts IS NULL OR LOWER(voltage_volts) IN ('missing', 'n/a', 'na', 'null', '-')
+    OR cutting_kn IS NULL OR LOWER(cutting_kn) IN ('missing', 'n/a', 'na', 'null', '-')
+    OR date IS NULL OR LOWER(date) IN ('missing', 'n/a', 'na', 'null', '-', '');
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET assembly_line_no = CASE 
+    WHEN UPPER(TRIM(assembly_line_no)) LIKE '%L1' THEN 'Shop Floor, L1'
+    WHEN UPPER(TRIM(assembly_line_no)) LIKE '%L2' THEN 'Shop Floor, L2'
+    WHEN UPPER(TRIM(assembly_line_no)) LIKE '%L3' THEN 'Shop Floor, L3'
+    ELSE assembly_line_no
+END;
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET assembly_line_no = CASE
+    WHEN machine_id = 'MAKINO-L1-UNIT1-2013' THEN 'SHOP FLOOR-L1'
+    WHEN machine_id = 'MAKINO-L2-UNIT1-2015' THEN 'SHOP FLOOR-L2'
+    WHEN machine_id = 'MAKINO-L3-UNIT1-2015' THEN 'SHOP FLOOR-L3'
+    ELSE assembly_line_no
+END
+WHERE assembly_line_no IS NULL 
+   OR LOWER(assembly_line_no) IN ('', 'null', 'na', 'n/a', 'missing', '-');
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET 
+    coolant_temperat = CAST(REPLACE(coolant_temperat, ',', '.') AS REAL),
+    hydraulic_pressu = CAST(REPLACE(hydraulic_pressu, ',', '.') AS REAL), 
+    tool_vibration_m = CAST(REPLACE(tool_vibration_m, ',', '.') AS REAL),
+    spindle_vibratio = CAST(REPLACE(spindle_vibratio, ',', '.') AS REAL),
+    torque_nm        = CAST(REPLACE(torque_nm, ',', '.') AS REAL),
+    cutting_kn       = CAST(REPLACE(cutting_kn, ',', '.') AS REAL),
+    spindle_speed_rp = CAST(REPLACE(spindle_speed_rp, ',', '.') AS REAL);
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET 
+    coolant_pressure = ROUND(coolant_pressure, 2),
+    air_system_press = ROUND(air_system_press, 2),
+    hydraulic_oil_te = ROUND(hydraulic_oil_te, 2),
+    spindle_bearing_ = ROUND(spindle_bearing_, 2);
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET downtime = CASE 
+    WHEN UPPER(downtime) LIKE '%NO%' THEN 'NO_MACHINE_FAILURE'
+    WHEN UPPER(downtime) LIKE '%MACHINE%' THEN 'MACHINE_FAILURE'
+    ELSE 'OTHER' 
+END; 
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET date = CASE 
+    WHEN date LIKE 'Jan%' THEN REPLACE(REPLACE(date, 'Jan ', '2022-01-'), ', 2022', '')
+    WHEN date LIKE 'Feb%' THEN REPLACE(REPLACE(date, 'Feb ', '2022-02-'), ', 2022', '')
+    WHEN date LIKE 'Mar%' THEN REPLACE(REPLACE(date, 'Mar ', '2022-03-'), ', 2022', '') 
+    ELSE date
+END
+WHERE date LIKE '% % 2022' OR date LIKE '%, 2022';
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET date = CASE 
+    WHEN date LIKE '%/%/%' THEN REPLACE(date, '/', '-')
+    WHEN date LIKE '%-%-%' AND length(date) = 10 AND substr(date, 3, 1) = '-' THEN  
+         SUBSTR(date, 7, 4) || '-' || SUBSTR(date, 4, 2) || '-' || SUBSTR(date, 1, 2)
+    ELSE date
+END;
+
+UPDATE Raw_Manufacturing_Downtime_Dataset
+SET date = SUBSTR(date, 9, 2) || '-' || CAST(SUBSTR(date, 6, 2) AS INT) || '-' || SUBSTR(date, 1, 4)
+WHERE date LIKE '202_-_-_';
+
+CREATE TABLE Manufacturing_Downtime_Dataset AS
+SELECT DISTINCT * FROM Raw_Manufacturing_Downtime_Dataset;
+
+Select *
+from Manufacturing_Downtime_Dataset
