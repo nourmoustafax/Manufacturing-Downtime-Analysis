@@ -54,14 +54,6 @@ The approach combines **mechanical understanding** (pressure, temperature, vibra
 
 ---
 
-### 2. Visual Identity
-- Industrial dashboard theme (dark, metallic, clean)  
-- KPI color standards:
-  - 🟢 Green → Normal  
-  - 🔴 Red → Failure Risk  
-
----
-
 ### 3. Main Dashboards
 - Executive Dashboard (overall KPIs & downtime)  
 - Machine Performance Dashboard  
